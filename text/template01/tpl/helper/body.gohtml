@@ -1,0 +1,31 @@
+{{define "body"}}
+    {{range irange 2}}
+        {{if gt $.totalMessage 0 }}
+            {{if eq $.totalMessage 1 }}
+                <p>{{$.u.Name}} has 1 message</p>
+            {{else}}
+                <p>{{$.u.Name}} has {{$.totalMessage}} messages</p>
+            {{end}}
+        {{else }}
+            <p>{{$.u.Name}} has no messages</p>
+        {{end}}
+    {{end}}
+    {{range irange 2}}
+        {{if gt $.totalMessage 0 }}
+            {{if eq $.totalMessage 1 }}
+                <p>{{$.u.Name}} has 1 message</p>
+            {{else}}
+                <p>{{$.u.Name}} has {{$.totalMessage}} messages</p>
+            {{end}}
+        {{else }}
+            <p>{{$.u.Name}} has no messages</p>
+        {{end}}
+    {{end}}
+    {{if eq .totalMessage 1 }}
+        <p>{{.u.Name}} has 1 message</p>
+    {{else if eq .totalMessage 2 }}
+        <p>{{.u.Name}} has 2 messages</p>
+    {{else }}
+        <p>{{.u.Name}} has no messages</p>
+    {{end}}
+{{end}}

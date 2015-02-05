@@ -1,0 +1,17 @@
+{{define "home"}}
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+{{template "title" .u}}
+</head>
+<body>
+<div>
+{{template "header"}}
+{{template "msg" .u}}
+{{template "body" .}}
+</div>
+<div>{{template "side"}}</div>
+</body>
+</html>
+{{end}}

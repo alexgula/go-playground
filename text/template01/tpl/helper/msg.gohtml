@@ -1,0 +1,9 @@
+{{define "msg"}}
+{{$username := .Name}}
+{{if ne .Email ""}}{{$username := printf "%s (%s)" .Name .Email}}{{end}}
+<div class="welcome">
+<h4>Hello {{$username}}</h4>
+
+<div>{{.Intro}}</div>
+</div>
+{{end}}

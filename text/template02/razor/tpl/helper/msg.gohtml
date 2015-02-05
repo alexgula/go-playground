@@ -1,0 +1,19 @@
+@{
+	import (
+		"github.com/alexgula/go-playground/text/template02/model"
+	)
+	var u *model.User
+}
+
+
+@{
+	username := u.Name
+	if u.Email != "" {
+		username += "(" + u.Email + ")"
+	}
+}
+<div class="welcome">
+<h4>Hello @username</h4>
+
+<div>@raw(u.Intro)</div>
+</div>
