@@ -1,6 +1,7 @@
 package facet
 
 type Facet struct {
+	bitCount int
 }
 
 func New() *Facet {
@@ -8,9 +9,9 @@ func New() *Facet {
 }
 
 func (facet *Facet) Set(bit int) {
-
+	facet.bitCount++
 }
 
 func (facet *Facet) Count() int {
-	return 0
+	return facet.bitCount
 }
