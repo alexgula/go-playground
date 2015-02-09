@@ -10,3 +10,7 @@ func New() *Facet {
 func (facet *Facet) Set(bit int) {
 
 }
+
+func (facet *Facet) Count() int {
+	return 0
+}
