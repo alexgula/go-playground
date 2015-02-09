@@ -46,3 +46,18 @@ func TestCanSetBiggerBitsAndCountBits(t *testing.T) {
 		t.Fatalf("Expected facet to hold %v bits, got %v instead", expected, cnt)
 	}
 }
+
+func TestCanSetAllBiggerBitsAndCountBits(t *testing.T) {
+	facet := New()
+	var expected uint64 = 32
+	facet.setAllBits(expected)
+	if cnt := facet.Count(); cnt != expected {
+		t.Fatalf("Expected facet to hold %v bits, got %v instead", expected, cnt)
+	}
+}
+
+func (facet *Facet) setAllBits(count uint64) {
+	for i := uint64(0); i < count; i++ {
+		facet.Set(i)
+	}
+}
