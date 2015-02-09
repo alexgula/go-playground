@@ -25,3 +25,12 @@ func TestCanSetAndCountBits(t *testing.T) {
 		t.Fatalf("Expected facet to hold 1 bit, got %v instead", cnt)
 	}
 }
+
+func TestCanSetSameBitAndCountBits(t *testing.T) {
+	facet := New()
+	facet.Set(0)
+	facet.Set(0)
+	if cnt := facet.Count(); cnt != 1 {
+		t.Fatalf("Expected facet to hold 1 bit, got %v instead", cnt)
+	}
+}
