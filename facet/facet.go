@@ -8,17 +8,18 @@ func New() *Facet {
 	return &Facet{}
 }
 
-func (facet *Facet) Set(bit uint64) {
-	facet.bits = facet.bits | (1 << bit)
+func (f *Facet) Set(bit uint64) {
+	f.bits = f.bits | (1 << bit)
 }
 
-func (facet *Facet) Count() (count uint64) {
-	bits := facet.bits
+func (f *Facet) Count() uint64 {
+	n := uint64(0)
+	bits := f.bits
 	for i := 0; i < 8; i++ {
 		if bits&1 == 1 {
-			count++
+			n++
 		}
 		bits >>= 1
 	}
-	return
+	return n
 }
