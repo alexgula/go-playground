@@ -47,9 +47,27 @@ func TestCanSetBiggerBitsAndCountBits(t *testing.T) {
 	}
 }
 
+func TestCanSetBigBitsAndCountBits(t *testing.T) {
+	facet := New()
+	facet.Set(10000000)
+	var expected uint = 1
+	if cnt := facet.Count(); cnt != expected {
+		t.Fatalf("Expected facet to hold %v bits, got %v instead", expected, cnt)
+	}
+}
+
 func TestCanSetAllBiggerBitsAndCountBits(t *testing.T) {
 	facet := New()
 	var expected uint = 32
+	facet.setAllBits(expected)
+	if cnt := facet.Count(); cnt != expected {
+		t.Fatalf("Expected facet to hold %v bits, got %v instead", expected, cnt)
+	}
+}
+
+func TestCanSetAllBigBitsAndCountBits(t *testing.T) {
+	facet := New()
+	var expected uint = 10000000
 	facet.setAllBits(expected)
 	if cnt := facet.Count(); cnt != expected {
 		t.Fatalf("Expected facet to hold %v bits, got %v instead", expected, cnt)
