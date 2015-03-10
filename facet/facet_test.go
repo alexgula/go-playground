@@ -13,6 +13,11 @@ func TestCanSetBit(t *testing.T) {
 	facet.Set(0)
 }
 
+func TestCanClearBit(t *testing.T) {
+	facet := New()
+	facet.Clear(0)
+}
+
 func TestCanCountBits(t *testing.T) {
 	facet := New()
 	facet.Count()
