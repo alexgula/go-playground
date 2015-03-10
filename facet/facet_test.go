@@ -42,6 +42,16 @@ func TestCanSetSameBitAndCountBits(t *testing.T) {
 	}
 }
 
+func TestCanSetAndClearAndCountBits(t *testing.T) {
+	facet := New()
+	facet.Set(0)
+	facet.Clear(0)
+	var expected uint = 0
+	if cnt := facet.Count(); cnt != expected {
+		t.Fatalf("Expected facet to hold %v bit, got %v instead", expected, cnt)
+	}
+}
+
 func TestCanSetBiggerBitsAndCountBits(t *testing.T) {
 	facet := New()
 	facet.Set(0)
