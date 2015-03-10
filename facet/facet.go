@@ -23,6 +23,9 @@ func (f *Facet) Set(bit uint) {
 	f.bits[byteNum] = f.bits[byteNum] | (1 << bitNum)
 }
 
+func (f *Facet) Clear(bit uint) {
+}
+
 func (f *Facet) Count() uint {
 	var n uint = 0
 	for _, bits := range f.bits {
