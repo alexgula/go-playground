@@ -26,8 +26,9 @@ func TestCanCountBits(t *testing.T) {
 func TestCanSetAndCountBits(t *testing.T) {
 	facet := New()
 	facet.Set(0)
-	if cnt := facet.Count(); cnt != 1 {
-		t.Fatalf("Expected facet to hold 1 bit, got %v instead", cnt)
+	var expected uint = 1
+	if cnt := facet.Count(); cnt != expected {
+		t.Fatalf("Expected facet to hold %v bit, got %v instead", expected, cnt)
 	}
 }
 
