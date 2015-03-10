@@ -9,89 +9,76 @@ func TestCanBeCreated(t *testing.T) {
 }
 
 func TestCanSetBit(t *testing.T) {
-	facet := New()
-	facet.Set(0)
+	f := New()
+	f.Set(0)
 }
 
 func TestCanClearBit(t *testing.T) {
-	facet := New()
-	facet.Clear(0)
+	f := New()
+	f.Clear(0)
 }
 
 func TestCanCountBits(t *testing.T) {
-	facet := New()
-	facet.Count()
+	f := New()
+	f.Count()
 }
 
 func TestCanSetAndCountBits(t *testing.T) {
-	facet := New()
-	facet.Set(0)
-	var expected uint = 1
-	if cnt := facet.Count(); cnt != expected {
-		t.Fatalf("Expected facet to hold %v bit, got %v instead", expected, cnt)
-	}
+	f := New()
+	f.Set(0)
+	f.expectCount(t, 1)
 }
 
 func TestCanSetSameBitAndCountBits(t *testing.T) {
-	facet := New()
-	facet.Set(0)
-	facet.Set(0)
-	var expected uint = 1
-	if cnt := facet.Count(); cnt != expected {
-		t.Fatalf("Expected facet to hold %v bit, got %v instead", expected, cnt)
-	}
+	f := New()
+	f.Set(0)
+	f.Set(0)
+	f.expectCount(t, 1)
 }
 
 func TestCanSetAndClearAndCountBits(t *testing.T) {
-	facet := New()
-	facet.Set(0)
-	facet.Clear(0)
-	var expected uint = 0
-	if cnt := facet.Count(); cnt != expected {
-		t.Fatalf("Expected facet to hold %v bit, got %v instead", expected, cnt)
-	}
+	f := New()
+	f.Set(0)
+	f.Clear(0)
+	f.expectCount(t, 0)
 }
 
 func TestCanSetBiggerBitsAndCountBits(t *testing.T) {
-	facet := New()
-	facet.Set(0)
-	facet.Set(0)
-	facet.Set(8)
-	var expected uint = 2
-	if cnt := facet.Count(); cnt != expected {
-		t.Fatalf("Expected facet to hold %v bits, got %v instead", expected, cnt)
-	}
+	f := New()
+	f.Set(0)
+	f.Set(0)
+	f.Set(8)
+	f.expectCount(t, 2)
 }
 
 func TestCanSetBigBitsAndCountBits(t *testing.T) {
-	facet := New()
-	facet.Set(10000000)
-	var expected uint = 1
-	if cnt := facet.Count(); cnt != expected {
-		t.Fatalf("Expected facet to hold %v bits, got %v instead", expected, cnt)
-	}
+	f := New()
+	f.Set(10000000)
+	f.expectCount(t, 1)
 }
 
 func TestCanSetAllBiggerBitsAndCountBits(t *testing.T) {
-	facet := New()
+	f := New()
 	var expected uint = 32
-	facet.setAllBits(expected)
-	if cnt := facet.Count(); cnt != expected {
-		t.Fatalf("Expected facet to hold %v bits, got %v instead", expected, cnt)
-	}
+	f.setAllBits(expected)
+	f.expectCount(t, expected)
 }
 
 func TestCanSetAllBigBitsAndCountBits(t *testing.T) {
-	facet := New()
+	f := New()
 	var expected uint = 10000000
-	facet.setAllBits(expected)
-	if cnt := facet.Count(); cnt != expected {
-		t.Fatalf("Expected facet to hold %v bits, got %v instead", expected, cnt)
+	f.setAllBits(expected)
+	f.expectCount(t, expected)
+}
+
+func (f *Facet) setAllBits(count uint) {
+	for i := uint(0); i < count; i++ {
+		f.Set(i)
 	}
 }
 
-func (facet *Facet) setAllBits(count uint) {
-	for i := uint(0); i < count; i++ {
-		facet.Set(i)
+func (f *Facet) expectCount(t *testing.T, expected uint) {
+	if cnt := f.Count(); cnt != expected {
+		t.Fatalf("Expected f to hold %v bits, got %v instead", expected, cnt)
 	}
 }
