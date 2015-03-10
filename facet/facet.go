@@ -24,6 +24,12 @@ func (f *Facet) Set(bit uint) {
 }
 
 func (f *Facet) Clear(bit uint) {
+	var byteNum = bit / itemsize
+	var bitNum = bit % itemsize
+	if uint(len(f.bits)) <= byteNum {
+		return // Non-existent bits are considered cleared
+	}
+	f.bits[byteNum] = f.bits[byteNum] & ^(1 << bitNum)
 }
 
 func (f *Facet) Count() uint {
