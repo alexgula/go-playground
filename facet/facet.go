@@ -52,6 +52,15 @@ func (f *Facet) And(o *Facet) {
 	}
 }
 
+func (f *Facet) Or(o *Facet) {
+	if len(f.bits) < len(o.bits) {
+		f.bits = append(f.bits, o.bits[len(f.bits):]...)
+	}
+	for i := 0; i < len(o.bits); i++ {
+		f.bits[i] |= o.bits[i]
+	}
+}
+
 func (f *Facet) pos(bit uint) (byteNum uint, bitNum uint) {
 	byteNum = bit / itemsize
 	bitNum = bit % itemsize
