@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"runtime"
 )
@@ -13,6 +14,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	port := 8888
+	fmt.Printf("Started server on %d\n", port)
 	http.HandleFunc("/", handler)
-	http.ListenAndServe(":8080", nil)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
