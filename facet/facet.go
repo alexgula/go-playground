@@ -13,8 +13,7 @@ func New() *Facet {
 }
 
 func (f *Facet) Set(bit uint) {
-	var byteNum = bit / itemsize
-	var bitNum = bit % itemsize
+	var byteNum, bitNum = f.pos(bit)
 	if uint(len(f.bits)) <= byteNum {
 		newBits := make([]byte, byteNum*2+1) // reserve double size for future grouth
 		copy(newBits, f.bits)
@@ -24,8 +23,7 @@ func (f *Facet) Set(bit uint) {
 }
 
 func (f *Facet) Clear(bit uint) {
-	var byteNum = bit / itemsize
-	var bitNum = bit % itemsize
+	var byteNum, bitNum = f.pos(bit)
 	if uint(len(f.bits)) <= byteNum {
 		return // Non-existent bits are considered cleared
 	}
@@ -43,4 +41,10 @@ func (f *Facet) Count() uint {
 		}
 	}
 	return n
+}
+
+func (f *Facet) pos(bit uint) (byteNum uint, bitNum uint) {
+	byteNum = bit / itemsize
+	bitNum = bit % itemsize
+	return
 }
