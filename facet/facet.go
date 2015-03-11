@@ -43,6 +43,15 @@ func (f *Facet) Count() uint {
 	return n
 }
 
+func (f *Facet) And(o *Facet) {
+	if len(f.bits) > len(o.bits) {
+		f.bits = f.bits[:len(o.bits)]
+	}
+	for i := 0; i < len(f.bits); i++ {
+		f.bits[i] &= o.bits[i]
+	}
+}
+
 func (f *Facet) pos(bit uint) (byteNum uint, bitNum uint) {
 	byteNum = bit / itemsize
 	bitNum = bit % itemsize

@@ -5,9 +5,9 @@ import (
 )
 
 func TestCanCalcAnd(t *testing.T) {
-	f, f1, f2 := New(), New(), New()
-	f1.Set(20)
-	f2.Set(20)
-	f.And(f1, f2)
+	f, o := New(), New()
+	f.Set(20)
+	o.Set(20)
+	f.And(o)
 	f.expectCount(t, 1)
 }
