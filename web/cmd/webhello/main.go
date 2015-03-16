@@ -2,31 +2,40 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"runtime"
 	"strings"
 )
 
-type verb struct {
-	verb string
+type word string
+
+type command struct {
+	verb word
 }
 
-type noun struct {
-	verb
-	noun string
+type greeting struct {
+	verb word
+	noun word
 }
 
-func (h verb) handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "<p>%s, just %s!</p>", strings.Title(h.verb), h.verb)
-	fmt.Printf("%s, just %s!\n", strings.Title(h.verb), h.verb)
-	fmt.Fprintf(w, "<p>I'm running on %s with an %s CPU</p>", runtime.GOOS, runtime.GOARCH)
+type runtime struct{}
+
+func (s word) write(w io.Writer) {
+	fmt.Fprintf(w, "%s", s)
 }
 
-func (h noun) handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "<p>%s, %s!</p>", strings.Title(h.verb.verb), h.noun)
-	fmt.Printf("%s, %s!\n", strings.Title(h.verb.verb), h.noun)
-	fmt.Fprintf(w, "<p>I'm running on %s with an %s CPU</p>", runtime.GOOS, runtime.GOARCH)
+func (s command) write(w io.Writer) {
+	fmt.Fprintf(w, "%s, just %s, now!", strings.Title(s.verb), s.verb)
+}
+
+func (s greeting) write(w io.Writer) {
+	fmt.Fprintf(w, "%s, %s!", strings.Title(h.verb), strings.Title(s.noun))
+}
+
+func (r runtime) write(w io.Writer) {
+	fmt.Fprintf(w, "I'm running on %s with an %s CPU", runtime.GOOS, runtime.GOARCH)
 }
 
 func splitPath(path string) []string {
