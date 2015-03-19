@@ -9,59 +9,98 @@ import (
 	"strings"
 )
 
-type word string
-
 type command struct {
-	verb word
+	verb string
 }
 
 type greeting struct {
-	verb word
-	noun word
+	verb string
+	noun string
 }
 
-type runtime struct{}
-
-func (s word) write(w io.Writer) {
-	fmt.Fprintf(w, "%s", s)
+func (c command) write(w io.Writer) {
+	fmt.Fprintf(w, "%s, just %s, now!", strings.Title(c.verb), c.verb)
 }
 
-func (s command) write(w io.Writer) {
-	fmt.Fprintf(w, "%s, just %s, now!", strings.Title(s.verb), s.verb)
+func (g greeting) write(w io.Writer) {
+	fmt.Fprintf(w, "%s, %s!", strings.Title(g.verb), strings.Title(g.noun))
 }
 
-func (s greeting) write(w io.Writer) {
-	fmt.Fprintf(w, "%s, %s!", strings.Title(h.verb), strings.Title(s.noun))
-}
-
-func (r runtime) write(w io.Writer) {
+func writeRuntime(w io.Writer) {
 	fmt.Fprintf(w, "I'm running on %s with an %s CPU", runtime.GOOS, runtime.GOARCH)
 }
 
-func splitPath(path string) []string {
-	c := strings.Split(path, "/")
-	return c
+/*
+	command{verb}, "/text/" -> render greeting
+*/
+func (c command) handlerGreeting(w http.ResponseWriter, r *http.Request) {
+	g := greeting{c.verb, r.URL.Path[1 : len(r.URL.Path)-1]}
+	g.write(w)
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	components := strings.SplitN(r.URL.Path[1:], "/", 2)
-	fmt.Printf("Got request path: '%v' split into %v of len %v\n", r.URL.Path, components, len(components))
-	if len(components) == 0 || len(components[0]) == 0 {
+/*
+	"/verb/" -> render verb
+	"/verb/text" -> command{verb}.handlerGreeting("/text")
+*/
+func handlerCommand(w http.ResponseWriter, r *http.Request) {
+	prefix, rest := splitPath(r.URL.Path)
+	fmt.Printf("Handler command with prefix '%v' and rest '%v'\n", prefix, rest)
+	c := command{prefix[1:]}
+	if len(rest) == 1 {
+		c.write(w)
+		return
+	}
+	http.StripPrefix(prefix, http.HandlerFunc(c.handlerGreeting)).ServeHTTP(w, r)
+}
+
+/*
+	"/" -> NotFound
+	"/text" -> handlerCommand("/text")
+*/
+func handlerRoot(w http.ResponseWriter, r *http.Request) {
+	if len(r.URL.Path) == 1 {
 		http.NotFound(w, r)
 		return
 	}
-	v := verb{verb: components[0]}
-	if len(components) == 1 || len(components[1]) == 0 {
-		v.handler(w, r)
-		return
+	handlerCommand(w, r)
+}
+
+/*
+	"text" -> redirect to "text/"
+	"text/" -> handlerRoot("text/")
+*/
+func handlerCanonicalize(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasSuffix(r.URL.Path, "/") {
+		r.URL.Path = r.URL.Path + "/"
+		http.Redirect(w, r, r.URL.String(), http.StatusMovedPermanently)
 	}
-	n := noun{verb: v, noun: components[1]}
-	n.handler(w, r)
+	handlerRoot(w, r)
+}
+
+/*
+	"text" -> log, handlerCanonicalize("text")
+*/
+func handlerLog(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("Got request url '%v' with path '%v'\n", r.URL, r.URL.Path)
+	handlerCanonicalize(w, r)
 }
 
 func main() {
-	port := 8888
+	port := 10001
 	fmt.Printf("Started server on %d\n", port)
-	http.HandleFunc("/", handler)
+	http.HandleFunc("/", handlerLog)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+}
+
+/*
+	"/" -> "", "/"
+	"/text/" -> "/text", "/"
+	"/prefix/text/" ->"/prefix", "/text/"
+*/
+func splitPath(url string) (first string, rest string) {
+	i := strings.Index(url[1:], "/")
+	if i < 0 {
+		return "", url
+	}
+	return url[:i+1], url[i+1:]
 }
