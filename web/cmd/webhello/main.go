@@ -89,6 +89,7 @@ func main() {
 	port := 10001
 	fmt.Printf("Started server on %d\n", port)
 	http.HandleFunc("/", handlerLog)
+	http.Handle("/favicon.ico", http.FileServer(http.Dir("assets/")))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
 
