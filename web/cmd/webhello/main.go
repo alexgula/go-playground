@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+type middleware struct {
+	next http.Handler
+}
+
 type command struct {
 	verb string
 }
@@ -18,24 +22,27 @@ type greeting struct {
 	noun string
 }
 
-func (c command) write(w io.Writer) {
-	fmt.Fprintf(w, "%s, just %s, now!", strings.Title(c.verb), c.verb)
+func (c command) write(w io.Writer) (n int, err error) {
+	return fmt.Fprintf(w, "%s, just %s, now!", strings.Title(c.verb), c.verb)
 }
 
-func (g greeting) write(w io.Writer) {
-	fmt.Fprintf(w, "%s, %s!", strings.Title(g.verb), strings.Title(g.noun))
+func (g greeting) write(w io.Writer) (n int, err error) {
+	return fmt.Fprintf(w, "%s, %s!", strings.Title(g.verb), strings.Title(g.noun))
 }
 
-func writeRuntime(w io.Writer) {
-	fmt.Fprintf(w, "I'm running on %s with an %s CPU", runtime.GOOS, runtime.GOARCH)
+func writeRuntime(w io.Writer) (n int, err error) {
+	return fmt.Fprintf(w, "I'm running on %s with an %s CPU", runtime.GOOS, runtime.GOARCH)
 }
 
 /*
 	command{verb}, "/text/" -> render greeting
 */
-func (c command) handlerGreeting(w http.ResponseWriter, r *http.Request) {
-	g := greeting{c.verb, r.URL.Path[1 : len(r.URL.Path)-1]}
-	g.write(w)
+func (c command) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	noun := r.URL.Path[1 : len(r.URL.Path)-1]
+	g := greeting{c.verb, noun}
+	if _, err := g.write(w); err != nil {
+		fmt.Fprintf(w, "Error! Error in command handler! %v!", err)
+	}
 }
 
 /*
@@ -50,7 +57,7 @@ func handlerCommand(w http.ResponseWriter, r *http.Request) {
 		c.write(w)
 		return
 	}
-	http.StripPrefix(prefix, http.HandlerFunc(c.handlerGreeting)).ServeHTTP(w, r)
+	http.StripPrefix(prefix, c).ServeHTTP(w, r)
 }
 
 /*
@@ -65,30 +72,38 @@ func handlerRoot(w http.ResponseWriter, r *http.Request) {
 	handlerCommand(w, r)
 }
 
+type normalizeMiddleware middleware
+
 /*
 	"text" -> redirect to "text/"
 	"text/" -> handlerRoot("text/")
 */
-func handlerCanonicalize(w http.ResponseWriter, r *http.Request) {
+func (m normalizeMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !strings.HasSuffix(r.URL.Path, "/") {
 		r.URL.Path = r.URL.Path + "/"
 		http.Redirect(w, r, r.URL.String(), http.StatusMovedPermanently)
 	}
-	handlerRoot(w, r)
+	m.next.ServeHTTP(w, r)
 }
+
+type logMiddleware middleware
 
 /*
 	"text" -> log, handlerCanonicalize("text")
 */
-func handlerLog(w http.ResponseWriter, r *http.Request) {
+func (m logMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Got request url '%v' with path '%v'\n", r.URL, r.URL.Path)
-	handlerCanonicalize(w, r)
+	m.next.ServeHTTP(w, r)
 }
 
 func main() {
 	port := 10001
 	fmt.Printf("Started server on %d\n", port)
-	http.HandleFunc("/", handlerLog)
+	var h http.Handler
+	h = http.HandlerFunc(handlerRoot)
+	h = normalizeMiddleware{h}
+	h = logMiddleware{h}
+	http.Handle("/", h)
 	http.Handle("/favicon.ico", http.FileServer(FS(false)))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
