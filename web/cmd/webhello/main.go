@@ -82,6 +82,7 @@ func (m normalizeMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !strings.HasSuffix(r.URL.Path, "/") {
 		r.URL.Path = r.URL.Path + "/"
 		http.Redirect(w, r, r.URL.String(), http.StatusMovedPermanently)
+		return
 	}
 	m.next.ServeHTTP(w, r)
 }
