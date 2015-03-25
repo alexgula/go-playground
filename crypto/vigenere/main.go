@@ -106,8 +106,8 @@ func mulCodeStats(s1, s2 codeStats) float64 {
 
 func avg(s []float64) float64 {
 	var r float64 = 0.0
-	for i := 0; i < len(s); i++ {
-		r += s[i]
+	for _, v := range s {
+		r += v
 	}
 	return r / float64(len(s))
 }
