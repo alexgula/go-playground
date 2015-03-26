@@ -105,6 +105,9 @@ func newEnglishStats() codeStats {
 		'y': 1.974,
 		'z': 0.074,
 	}
+	for i := 0; i < len(e); i++ {
+		e[i] /= 100
+	}
 	return e
 }
 
