@@ -1,37 +1,58 @@
 package main
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"math"
 )
 
 type codeStats [256]float64
 
 func main() {
+	log.SetOutput(ioutil.Discard) // Switch off logging
+
 	c, err := hex.DecodeString("C0DE")
 	if err != nil {
 		fmt.Println("Error in hex decoding", err)
 	}
 
+	n := findKeyLen(c, 13)
+
+	fmt.Printf("N = %d\n", n)
+
+	k := findKey(c, n)
+
+	fmt.Printf("Key = %v\n", k)
+
+	t := xor(c, k...)
+
+	fmt.Println(string(t))
+}
+
+func findKeyLen(c []byte, maxLen int) int {
 	maxi, maxd := 0, float64(0)
-	for i := 1; i <= 13; i++ {
-		fmt.Printf("%2d", i)
+	for i := 1; i <= maxLen; i++ {
+		logBuf := bytes.NewBufferString("")
+		fmt.Fprintf(logBuf, "%2d", i)
 		d := float64(0)
 		for j := 0; j < i; j++ {
 			dj := newCodeStats(filter(c, j, i)).d()
-			fmt.Printf(" %5.2f", dj*100)
+			fmt.Fprintf(logBuf, " %6.2f", dj*100)
 			d += dj / float64(i)
 		}
 		if d > maxd {
 			maxi, maxd = i, d
 		}
-		fmt.Printf(" -> %5.2f\n", d*100)
+		fmt.Fprintf(logBuf, "  ->  %6.2f", d*100)
+		log.Println(logBuf)
 	}
-	n := maxi
+	return maxi
+}
 
-	fmt.Printf("N = %d\n", n)
-
+func findKey(c []byte, n int) []byte {
 	k := make([]byte, n)
 	for i := 0; i < n; i++ {
 		maxj, maxd := byte(0), float64(0)
@@ -43,12 +64,7 @@ func main() {
 		}
 		k[i] = maxj
 	}
-
-	fmt.Printf("Key = %v\n", k)
-
-	t := xor(c, k...)
-
-	fmt.Println(string(t))
+	return k
 }
 
 func newCodeStats(c []byte) codeStats {
