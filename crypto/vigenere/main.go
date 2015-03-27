@@ -17,21 +17,17 @@ func main() {
 	c, err := hex.DecodeString("C0DE")
 	assert(err, "Error in hex decoding")
 
-	n, err := findKeyLen(c, 13)
-	assert(err, "Key length error")
+	n := findKeyLen(c, 13)
 
-	_, err = fmt.Printf("N = %d\n", n)
-	assert(err, "I/o error")
+	fmt.Printf("N = %d\n", n)
 
 	k := findKey(c, n)
 
-	_, err = fmt.Printf("Key = %v\n", k)
-	assert(err, "I/o error")
+	fmt.Printf("Key = %v\n", k)
 
 	t := xor(c, k...)
 
-	_, err = fmt.Println(string(t))
-	assert(err, "I/o error")
+	fmt.Println(string(t))
 }
 
 func assert(err error, msg string) {
@@ -40,33 +36,24 @@ func assert(err error, msg string) {
 	}
 }
 
-func findKeyLen(c []byte, maxLen int) (int, error) {
+func findKeyLen(c []byte, maxLen int) int {
 	maxi, maxd := 0, float64(0)
 	for i := 1; i <= maxLen; i++ {
 		logBuf := bytes.NewBufferString("")
-		_, err := fmt.Fprintf(logBuf, "%2d", i)
-		if err != nil {
-			return 0, err
-		}
+		fmt.Fprintf(logBuf, "%2d", i)
 		d := float64(0)
 		for j := 0; j < i; j++ {
 			dj := newCodeStats(filter(c, j, i)).d()
-			_, err = fmt.Fprintf(logBuf, " %6.2f", dj*100)
-			if err != nil {
-				return 0, err
-			}
+			fmt.Fprintf(logBuf, " %6.2f", dj*100)
 			d += dj / float64(i)
 		}
 		if d > maxd {
 			maxi, maxd = i, d
 		}
-		_, err = fmt.Fprintf(logBuf, "  ->  %6.2f", d*100)
-		if err != nil {
-			return 0, err
-		}
+		fmt.Fprintf(logBuf, "  ->  %6.2f", d*100)
 		log.Println(logBuf)
 	}
-	return maxi, nil
+	return maxi
 }
 
 func findKey(c []byte, n int) []byte {
