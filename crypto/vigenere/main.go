@@ -37,7 +37,8 @@ func assert(err error, msg string) {
 }
 
 func findKeyLen(c []byte, maxLen int) int {
-	maxi, maxd := 0, float64(0)
+	var maxi int
+	var maxd float64
 	for i := 1; i <= maxLen; i++ {
 		logBuf := bytes.NewBufferString("")
 		fmt.Fprintf(logBuf, "%2d", i)
@@ -120,7 +121,7 @@ func (s codeStats) d() float64 {
 }
 
 func mulCodeStats(s1, s2 codeStats) float64 {
-	var m float64 = 0.0
+	var m float64
 	for i := 0; i < 256; i++ {
 		m += s1[i] * s2[i]
 	}
@@ -128,7 +129,7 @@ func mulCodeStats(s1, s2 codeStats) float64 {
 }
 
 func avg(s []float64) float64 {
-	var r float64 = 0.0
+	var r float64
 	for _, v := range s {
 		r += v
 	}
