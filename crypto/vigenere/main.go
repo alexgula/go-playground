@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
-	"math"
 )
 
 type codeStats [256]float64
@@ -17,15 +17,18 @@ func main() {
 	c, err := hex.DecodeString("C0DE")
 	assert(err, "Error in hex decoding")
 
-	n := findKeyLen(c, 13)
+	n, err := findKeyLen(c, 13)
+	assert(err, "Error in key length")
 
 	fmt.Printf("N = %d\n", n)
 
-	k := findKey(c, n)
+	k, err := findKey(c, n)
+	assert(err, "Error in find key")
 
 	fmt.Printf("Key = %v\n", k)
 
-	t := xor(c, k...)
+	t, err := bytesToSlice(xor(bytes.NewReader(c), k...))
+	assert(err, "Error in applying key")
 
 	fmt.Println(string(t))
 }
@@ -36,7 +39,7 @@ func assert(err error, msg string) {
 	}
 }
 
-func findKeyLen(c []byte, maxLen int) int {
+func findKeyLen(c []byte, maxLen int) (int, error) {
 	var maxi int
 	var maxd float64
 	for i := 1; i <= maxLen; i++ {
@@ -44,7 +47,11 @@ func findKeyLen(c []byte, maxLen int) int {
 		fmt.Fprintf(logBuf, "%2d", i)
 		d := float64(0)
 		for j := 0; j < i; j++ {
-			dj := newCodeStats(filter(c, j, i)).d()
+			stats, err := newCodeStats(filter(bytes.NewReader(c), j, i))
+			if err != nil {
+				return 0, err
+			}
+			dj := stats.d()
 			fmt.Fprintf(logBuf, " %6.2f", dj*100)
 			d += dj / float64(i)
 		}
@@ -54,32 +61,54 @@ func findKeyLen(c []byte, maxLen int) int {
 		fmt.Fprintf(logBuf, "  ->  %6.2f", d*100)
 		log.Println(logBuf)
 	}
-	return maxi
+	return maxi, nil
 }
 
-func findKey(c []byte, n int) []byte {
+func findKey(c []byte, n int) ([]byte, error) {
 	k := make([]byte, n)
 	for i := 0; i < n; i++ {
 		var maxj byte
 		var maxd float64
 		for j := 0; j < 256; j++ {
-			d := mulCodeStats(newCodeStats(xor(filter(c, i, n), byte(j))), newEnglishStats())
+			stats, err := newCodeStats(xor(filter(bytes.NewReader(c), i, n), byte(j)))
+			if err != nil {
+				return nil, err
+			}
+			d := mulCodeStats(stats, newEnglishStats())
 			if d > maxd {
 				maxj, maxd = byte(j), d
 			}
 		}
 		k[i] = maxj
 	}
-	return k
+	return k, nil
 }
 
-func newCodeStats(c []byte) codeStats {
+func newCodeStats(r io.ByteReader) (codeStats, error) {
 	s := codeStats{}
-	f := 1 / float64(len(c))
-	for _, b := range c {
-		s[b] += f
+
+	var n int
+	for {
+		b, err := r.ReadByte()
+		if err != nil {
+			if err != io.EOF {
+				return codeStats{}, err
+			}
+			break
+		}
+		s[b]++
+		n++
 	}
-	return s
+
+	if n == 0 {
+		return s, nil
+	}
+
+	for i := 0; i < 256; i++ {
+		s[i] /= float64(n)
+	}
+
+	return s, nil
 }
 
 func newEnglishStats() codeStats {
@@ -129,26 +158,63 @@ func mulCodeStats(s1, s2 codeStats) float64 {
 	return m
 }
 
-func avg(s []float64) float64 {
-	var r float64
-	for _, v := range s {
-		r += v
-	}
-	return r / float64(len(s))
+type periodFilter struct {
+	src           io.ByteReader
+	start, period int
 }
 
-func filter(s []byte, t, p int) []byte {
-	r := make([]byte, int(math.Ceil(float64(len(s)-t)/float64(p))))
-	for i, j := 0, t; j < len(s); i, j = i+1, j+p {
-		r[i] = s[j]
+func (f *periodFilter) ReadByte() (c byte, err error) {
+	for i := 0; i <= f.start; i++ {
+		c, err = f.src.ReadByte()
+		if err != nil {
+			return
+		}
 	}
-	return r
+	f.start = 0 // Skip first bytes on first run only
+
+	for i := 1; i < f.period; i++ {
+		_, err = f.src.ReadByte()
+		if err != nil {
+			return
+		}
+	}
+	return
 }
 
-func xor(s []byte, k ...byte) []byte {
-	r := make([]byte, len(s))
-	for i := 0; i < len(s); i++ {
-		r[i] = s[i] ^ k[i%len(k)]
+func filter(src io.ByteReader, start, period int) io.ByteReader {
+	return &periodFilter{src, start, period}
+}
+
+type xorStream struct {
+	src io.ByteReader
+	pos int
+	key []byte
+}
+
+func xor(src io.ByteReader, key ...byte) io.ByteReader {
+	return &xorStream{src, 0, key}
+}
+
+func (s *xorStream) ReadByte() (c byte, err error) {
+	c, err = s.src.ReadByte()
+	if err != nil {
+		return
 	}
-	return r
+	c ^= s.key[s.pos%len(s.key)]
+	s.pos++
+	return
+}
+
+func bytesToSlice(r io.ByteReader) (b []byte, err error) {
+	for {
+		c, err := r.ReadByte()
+		if err != nil {
+			if err != io.EOF {
+				return b, err
+			}
+			break
+		}
+		b = append(b, c)
+	}
+	return
 }
