@@ -60,7 +60,8 @@ func findKeyLen(c []byte, maxLen int) int {
 func findKey(c []byte, n int) []byte {
 	k := make([]byte, n)
 	for i := 0; i < n; i++ {
-		maxj, maxd := byte(0), float64(0)
+		var maxj byte
+		var maxd float64
 		for j := 0; j < 256; j++ {
 			d := mulCodeStats(newCodeStats(xor(filter(c, i, n), byte(j))), newEnglishStats())
 			if d > maxd {
@@ -75,8 +76,8 @@ func findKey(c []byte, n int) []byte {
 func newCodeStats(c []byte) codeStats {
 	s := codeStats{}
 	f := 1 / float64(len(c))
-	for i := 0; i < len(c); i++ {
-		s[c[i]] += f
+	for _, b := range c {
+		s[b] += f
 	}
 	return s
 }
