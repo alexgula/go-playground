@@ -7,30 +7,31 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"os"
 )
 
-type codeStats [256]float64
+type codeStats [256]int
 
 func main() {
 	log.SetOutput(ioutil.Discard) // Switch off logging
 
+	buf := make([]byte, 1024)
+
 	c, err := hex.DecodeString("C0DE")
 	assert(err, "Error in hex decoding")
 
-	n, err := findKeyLen(c, 13)
+	n, err := findKeyLen(bytes.NewReader(c), 13, buf)
 	assert(err, "Error in key length")
 
 	fmt.Printf("N = %d\n", n)
 
-	k, err := findKey(c, n)
+	k, err := findKey(bytes.NewReader(c), n, buf)
 	assert(err, "Error in find key")
 
 	fmt.Printf("Key = %v\n", k)
 
-	t, err := bytesToSlice(xor(bytes.NewReader(c), k...))
+	_, err = printR(xor(bytes.NewReader(c), k...))
 	assert(err, "Error in applying key")
-
-	fmt.Println(string(t))
 }
 
 func assert(err error, msg string) {
@@ -39,7 +40,13 @@ func assert(err error, msg string) {
 	}
 }
 
-func findKeyLen(c []byte, maxLen int) (int, error) {
+func printR(src io.Reader) (n int64, err error) {
+	n, err = io.Copy(os.Stdout, src)
+	fmt.Println()
+	return
+}
+
+func findKeyLen(src io.ReadSeeker, maxLen int, buf []byte) (int, error) {
 	var maxi int
 	var maxd float64
 	for i := 1; i <= maxLen; i++ {
@@ -47,7 +54,8 @@ func findKeyLen(c []byte, maxLen int) (int, error) {
 		fmt.Fprintf(logBuf, "%2d", i)
 		d := float64(0)
 		for j := 0; j < i; j++ {
-			stats, err := newCodeStats(filter(bytes.NewReader(c), j, i))
+			src.Seek(0, 0)
+			stats, err := newCodeStats(filter(src, j, i), buf)
 			if err != nil {
 				return 0, err
 			}
@@ -64,13 +72,14 @@ func findKeyLen(c []byte, maxLen int) (int, error) {
 	return maxi, nil
 }
 
-func findKey(c []byte, n int) ([]byte, error) {
-	k := make([]byte, n)
-	for i := 0; i < n; i++ {
+func findKey(src io.ReadSeeker, keyLen int, buf []byte) ([]byte, error) {
+	k := make([]byte, keyLen)
+	for i := 0; i < keyLen; i++ {
 		var maxj byte
 		var maxd float64
 		for j := 0; j < 256; j++ {
-			stats, err := newCodeStats(xor(filter(bytes.NewReader(c), i, n), byte(j)))
+			src.Seek(0, 0)
+			stats, err := newCodeStats(xor(filter(src, i, keyLen), byte(j)), buf)
 			if err != nil {
 				return nil, err
 			}
@@ -84,64 +93,48 @@ func findKey(c []byte, n int) ([]byte, error) {
 	return k, nil
 }
 
-func newCodeStats(r io.ByteReader) (codeStats, error) {
-	s := codeStats{}
-
+func newCodeStats(src io.Reader, buf []byte) (s codeStats, err error) {
 	var n int
-	for {
-		b, err := r.ReadByte()
-		if err != nil {
-			if err != io.EOF {
-				return codeStats{}, err
-			}
-			break
+	for err == nil {
+		n, err = src.Read(buf)
+		for i := 0; i < n; i++ {
+			s[buf[i]]++
 		}
-		s[b]++
-		n++
 	}
-
-	if n == 0 {
-		return s, nil
+	if err == io.EOF {
+		err = nil
 	}
-
-	for i := 0; i < 256; i++ {
-		s[i] /= float64(n)
-	}
-
-	return s, nil
+	return
 }
 
 func newEnglishStats() codeStats {
 	e := codeStats{
-		'a': 8.167,
-		'b': 1.492,
-		'c': 2.782,
-		'd': 4.253,
-		'e': 12.702,
-		'f': 2.228,
-		'g': 2.015,
-		'h': 6.094,
-		'i': 6.966,
-		'j': 0.153,
-		'k': 0.772,
-		'l': 4.025,
-		'm': 2.406,
-		'n': 6.749,
-		'o': 7.507,
-		'p': 1.929,
-		'q': 0.095,
-		'r': 5.987,
-		's': 6.327,
-		't': 9.056,
-		'u': 2.758,
-		'v': 0.978,
-		'w': 2.360,
-		'x': 0.150,
-		'y': 1.974,
-		'z': 0.074,
-	}
-	for i := 0; i < len(e); i++ {
-		e[i] /= 100
+		'a': 8167,
+		'b': 1492,
+		'c': 2782,
+		'd': 4253,
+		'e': 12702,
+		'f': 2228,
+		'g': 2015,
+		'h': 6094,
+		'i': 6966,
+		'j': 153,
+		'k': 772,
+		'l': 4025,
+		'm': 2406,
+		'n': 6749,
+		'o': 7507,
+		'p': 1929,
+		'q': 95,
+		'r': 5987,
+		's': 6327,
+		't': 9056,
+		'u': 2758,
+		'v': 978,
+		'w': 2360,
+		'x': 150,
+		'y': 1974,
+		'z': 74,
 	}
 	return e
 }
@@ -150,71 +143,69 @@ func (s codeStats) d() float64 {
 	return mulCodeStats(s, s)
 }
 
+func (s codeStats) total() int {
+	t := 0
+	for _, c := range s {
+		t += c
+	}
+	return t
+}
+
 func mulCodeStats(s1, s2 codeStats) float64 {
+	t1, t2 := s1.total(), s2.total()
+	if t1 == 0 || t2 == 0 {
+		return 0
+	}
 	var m float64
 	for i := 0; i < 256; i++ {
-		m += s1[i] * s2[i]
+		m += (float64(s1[i]) / float64(t1)) * (float64(s2[i]) / float64(t2))
 	}
 	return m
 }
 
 type periodFilter struct {
-	src           io.ByteReader
+	src           io.Reader
+	pos           int
 	start, period int
 }
 
-func (f *periodFilter) ReadByte() (c byte, err error) {
-	for i := 0; i <= f.start; i++ {
-		c, err = f.src.ReadByte()
-		if err != nil {
-			return
-		}
+func (f *periodFilter) Read(p []byte) (n int, err error) {
+	n, err = f.src.Read(p)
+	var j int
+	for i := f.start; i < n; i, j = i+f.period, j+1 {
+		p[j] = p[i]
 	}
-	f.start = 0 // Skip first bytes on first run only
 
-	for i := 1; i < f.period; i++ {
-		_, err = f.src.ReadByte()
-		if err != nil {
-			return
-		}
+	// Skip first bytes on first run only
+	f.start -= n
+	if f.start < 0 {
+		f.start = 0
 	}
-	return
+
+	return j, err
 }
 
-func filter(src io.ByteReader, start, period int) io.ByteReader {
-	return &periodFilter{src, start, period}
+func filter(src io.Reader, start, period int) io.Reader {
+	return &periodFilter{src: src, start: start, period: period}
 }
 
 type xorStream struct {
-	src io.ByteReader
+	src io.Reader
 	pos int
 	key []byte
 }
 
-func xor(src io.ByteReader, key ...byte) io.ByteReader {
-	return &xorStream{src, 0, key}
+func xor(src io.Reader, key ...byte) io.Reader {
+	return &xorStream{src: src, key: key}
 }
 
-func (s *xorStream) ReadByte() (c byte, err error) {
-	c, err = s.src.ReadByte()
-	if err != nil {
+func (s *xorStream) Read(p []byte) (n int, err error) {
+	n, err = s.src.Read(p)
+	if len(s.key) == 0 {
 		return
 	}
-	c ^= s.key[s.pos%len(s.key)]
-	s.pos++
-	return
-}
-
-func bytesToSlice(r io.ByteReader) (b []byte, err error) {
-	for {
-		c, err := r.ReadByte()
-		if err != nil {
-			if err != io.EOF {
-				return b, err
-			}
-			break
-		}
-		b = append(b, c)
+	for i := 0; i < n; i, s.pos = i+1, s.pos+1 {
+		p[i] ^= s.key[s.pos%len(s.key)]
 	}
 	return
 }
