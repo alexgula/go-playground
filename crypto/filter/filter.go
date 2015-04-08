@@ -8,7 +8,7 @@ type periodFilter struct {
 	start, period int
 }
 
-// NewReader creaes new reader from existing reader, that will skip start amount
+// NewReader creates new reader from existing reader, that will skip start amount
 // of bytes and then will return each period's byte.
 //
 // Example: NewReader(_, 2, 2) applied to reader returning [0 1 2 3 4 5] will

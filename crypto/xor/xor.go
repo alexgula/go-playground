@@ -8,7 +8,7 @@ type xorStream struct {
 	key []byte
 }
 
-// NewReader returns reader that for each byte of source reader applises XOR
+// NewReader creates new reader that for each byte of source reader applises XOR
 // operation with each byte of key. Key is repeated in cycle as much as
 // necessary to process all bytes of source reader.
 func NewReader(src io.Reader, key ...byte) io.Reader {
