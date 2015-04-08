@@ -17,17 +17,17 @@ import (
 func main() {
 	log.SetOutput(ioutil.Discard) // Switch off logging
 
-	buf := make([]byte, 1024)
+	s := stats.New(make([]byte, 32*1024)) // Size is chosen similar to io.Copy
 
 	c, err := hex.DecodeString("C0DE")
 	assert(err, "Error in hex decoding")
 
-	n, err := findKeyLen(bytes.NewReader(c), 13, buf)
+	n, err := findKeyLen(bytes.NewReader(c), 13, s)
 	assert(err, "Error in key length")
 
 	fmt.Printf("N = %d\n", n)
 
-	k, err := findKey(bytes.NewReader(c), n, buf)
+	k, err := findKey(bytes.NewReader(c), n, s)
 	assert(err, "Error in find key")
 
 	fmt.Printf("Key = %v\n", k)
@@ -48,7 +48,7 @@ func printR(src io.Reader) (n int64, err error) {
 	return
 }
 
-func findKeyLen(src io.ReadSeeker, maxLen int, buf []byte) (int, error) {
+func findKeyLen(src io.ReadSeeker, maxLen int, s stats.CodeStats) (int, error) {
 	var maxi int
 	var maxd float64
 	for i := 1; i <= maxLen; i++ {
@@ -57,7 +57,8 @@ func findKeyLen(src io.ReadSeeker, maxLen int, buf []byte) (int, error) {
 		d := float64(0)
 		for j := 0; j < i; j++ {
 			src.Seek(0, 0)
-			s, err := stats.NewFrom(filter.NewReader(src, j, i), buf)
+			s.Reset()
+			_, err := s.ReadFrom(filter.NewReader(src, j, i))
 			if err != nil {
 				return 0, err
 			}
@@ -74,14 +75,15 @@ func findKeyLen(src io.ReadSeeker, maxLen int, buf []byte) (int, error) {
 	return maxi, nil
 }
 
-func findKey(src io.ReadSeeker, keyLen int, buf []byte) ([]byte, error) {
+func findKey(src io.ReadSeeker, keyLen int, s stats.CodeStats) ([]byte, error) {
 	k := make([]byte, keyLen)
 	for i := 0; i < keyLen; i++ {
 		var maxj byte
 		var maxd float64
 		for j := 0; j < 256; j++ {
 			src.Seek(0, 0)
-			s, err := stats.NewFrom(xor.NewReader(filter.NewReader(src, i, keyLen), byte(j)), buf)
+			s.Reset()
+			_, err := s.ReadFrom(xor.NewReader(filter.NewReader(src, i, keyLen), byte(j)))
 			if err != nil {
 				return nil, err
 			}

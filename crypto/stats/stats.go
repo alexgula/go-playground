@@ -5,14 +5,30 @@ import "io"
 // CodeStats represents frequencies of bytes.
 type CodeStats struct {
 	counts [256]int
+	buf    []byte
 }
 
-// NewFrom creates and calculates new stats from provided reader.
-func NewFrom(src io.Reader, buf []byte) (s CodeStats, err error) {
-	var n int
+// New creates new zero code stats with buffer provided.
+//
+// Buffer is used for reading from reader later. We allow to provide buffer to
+// avoid repeatable allocations since stats are recalculated frequently.
+func New(buf []byte) CodeStats {
+	return CodeStats{buf: buf}
+}
+
+// Reset resets all counts to 0.
+func (s *CodeStats) Reset() {
+	s.counts = [256]int{}
+}
+
+// ReadFrom implements io.ReadFrom interface. It read all bytes from the reader
+// until EOF and increments these bytes counts.
+func (s *CodeStats) ReadFrom(r io.Reader) (n int64, err error) {
 	for err == nil {
-		n, err = src.Read(buf)
-		s.add(buf[:n])
+		var m int
+		m, err = r.Read(s.buf)
+		s.Write(s.buf[:m])
+		n += int64(m)
 	}
 	if err == io.EOF {
 		err = nil
@@ -20,10 +36,11 @@ func NewFrom(src io.Reader, buf []byte) (s CodeStats, err error) {
 	return
 }
 
-func (s *CodeStats) add(p []byte) {
+func (s *CodeStats) Write(p []byte) (n int, err error) {
 	for i := 0; i < len(p); i++ {
 		s.counts[p[i]]++
 	}
+	return len(p), nil
 }
 
 // English returns known stats for an english text.
