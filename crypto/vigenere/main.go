@@ -97,14 +97,18 @@ func newCodeStats(src io.Reader, buf []byte) (s codeStats, err error) {
 	var n int
 	for err == nil {
 		n, err = src.Read(buf)
-		for i := 0; i < n; i++ {
-			s[buf[i]]++
-		}
+		s.add(buf[:n])
 	}
 	if err == io.EOF {
 		err = nil
 	}
 	return
+}
+
+func (s *codeStats) add(p []byte) {
+	for i := 0; i < len(p); i++ {
+		s[p[i]]++
+	}
 }
 
 func newEnglishStats() codeStats {
@@ -171,18 +175,22 @@ type periodFilter struct {
 
 func (f *periodFilter) Read(p []byte) (n int, err error) {
 	n, err = f.src.Read(p)
-	var j int
-	for i := f.start; i < n; i, j = i+f.period, j+1 {
-		p[j] = p[i]
+	n = f.filter(p[:n])
+	return
+}
+
+func (f *periodFilter) filter(p []byte) (n int) {
+	for i := f.start; i < len(p); i, n = i+f.period, n+1 {
+		p[n] = p[i]
 	}
 
 	// Skip first bytes on first run only
-	f.start -= n
+	f.start -= len(p)
 	if f.start < 0 {
 		f.start = 0
 	}
 
-	return j, err
+	return
 }
 
 func filter(src io.Reader, start, period int) io.Reader {
@@ -201,11 +209,15 @@ func xor(src io.Reader, key ...byte) io.Reader {
 
 func (s *xorStream) Read(p []byte) (n int, err error) {
 	n, err = s.src.Read(p)
+	s.xor(p[:n])
+	return
+}
+
+func (s *xorStream) xor(p []byte) {
 	if len(s.key) == 0 {
 		return
 	}
-	for i := 0; i < n; i, s.pos = i+1, s.pos+1 {
+	for i := 0; i < len(p); i, s.pos = i+1, s.pos+1 {
 		p[i] ^= s.key[s.pos%len(s.key)]
 	}
-	return
 }
