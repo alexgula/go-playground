@@ -37,8 +37,8 @@ func (s *CodeStats) ReadFrom(r io.Reader) (n int64, err error) {
 }
 
 func (s *CodeStats) Write(p []byte) (n int, err error) {
-	for i := 0; i < len(p); i++ {
-		s.counts[p[i]]++
+	for _, b := range p {
+		s.counts[b]++
 	}
 	return len(p), nil
 }
