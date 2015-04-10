@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -20,7 +21,7 @@ func main() {
 	defer o.Close()
 
 	r, err := o.Send(ctext)
-	fmt.Printf("%c\n", r)
+	fmt.Printf("For initial code Oracle returned %c\n", r)
 }
 
 func assert(err error, msg string) {
@@ -59,9 +60,7 @@ func (o *Oracle) Send(ctext []byte) (r byte, err error) {
 
 	nblocks := len(ctext) / o.blocklen
 
-	prefix := [1]byte{byte(nblocks)}
-	suffix := [1]byte{0}
-	_, err = o.write(prefix[:], ctext, suffix[:])
+	_, err = o.write([]byte{byte(nblocks)}, ctext, []byte{0})
 	if err != nil {
 		return
 	}
@@ -78,12 +77,14 @@ func (o *Oracle) Send(ctext []byte) (r byte, err error) {
 
 func (o *Oracle) write(bs ...[]byte) (n int, err error) {
 	var m int
+	w := bufio.NewWriter(o.Conn)
 	for _, b := range bs {
-		m, err = o.Conn.Write(b)
+		m, err = w.Write(b)
 		n += m
 		if err != nil {
 			return
 		}
 	}
+	err = w.Flush()
 	return
 }
