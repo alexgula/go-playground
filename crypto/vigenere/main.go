@@ -56,9 +56,12 @@ func findKeyLen(src io.ReadSeeker, maxLen int, s stats.CodeStats) (int, error) {
 		fmt.Fprintf(logBuf, "%2d", i)
 		d := float64(0)
 		for j := 0; j < i; j++ {
-			src.Seek(0, 0)
+			_, err := src.Seek(0, 0)
+			if err != nil {
+				return 0, err
+			}
 			s.Reset()
-			_, err := s.ReadFrom(filter.NewReader(src, j, i))
+			_, err = s.ReadFrom(filter.NewReader(src, j, i))
 			if err != nil {
 				return 0, err
 			}
@@ -81,9 +84,12 @@ func findKey(src io.ReadSeeker, keyLen int, s stats.CodeStats) ([]byte, error) {
 		var maxj byte
 		var maxd float64
 		for j := 0; j < 256; j++ {
-			src.Seek(0, 0)
+			_, err := src.Seek(0, 0)
+			if err != nil {
+				return nil, err
+			}
 			s.Reset()
-			_, err := s.ReadFrom(xor.NewReader(filter.NewReader(src, i, keyLen), byte(j)))
+			_, err = s.ReadFrom(xor.NewReader(filter.NewReader(src, i, keyLen), byte(j)))
 			if err != nil {
 				return nil, err
 			}
