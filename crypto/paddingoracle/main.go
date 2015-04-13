@@ -16,8 +16,11 @@ func main() {
 	assert(err, "Error in hex decoding")
 
 	o, err := NewOracle(16)
-	assert(err, "Could not create oracle:")
-	defer o.Close()
+	assert(err, "Could not create oracle")
+	defer func() {
+		err := o.Close()
+		assert(err, "Could not close oracle")
+	}()
 
 	r, err := o.Send(ctext, -1, 0)
 	log.Printf("For initial code oracle returned %c\n", r)
