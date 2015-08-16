@@ -1,11 +1,10 @@
 package render
 
 import (
-	"fmt"
+	"errors"
 	"image"
 	"image/color"
 	"image/png"
-	"log"
 	"os"
 )
 
@@ -62,16 +61,28 @@ func Line(m Canvas, x0, y0, x1, y1 int, c color.Color) Canvas {
 	return m
 }
 
-func Save(m image.Image, fn string) {
+func Save(m image.Image, fn string) (err error) {
 	f, err := os.Create(fn)
-	defer f.Close()
-	assert("Could not create file: ", err)
+	if err != nil {
+		return errors.New("Could not create a file: " + err.Error())
+	}
+	defer func() {
+		if cerr := f.Close(); cerr != err {
+			err = combineError(
+				err,
+				errors.New("Could not close file: "+cerr.Error()))
+		}
+	}()
 	err = png.Encode(f, m)
-	assert("Could not write image: ", err)
+	if err != nil {
+		return errors.New("Could not encode PNG: " + err.Error())
+	}
+	return nil
 }
 
-func assert(msg string, err error) {
-	if err != nil {
-		log.Fatal(fmt.Sprint(msg, err))
+func combineError(outer, inner error) error {
+	if outer != nil {
+		return errors.New(outer.Error() + " and " + inner.Error())
 	}
+	return inner
 }

@@ -23,7 +23,8 @@ func main() {
 			render.Line(m, int(x), int(y), 50, 50, color.RGBA{x + y, x - y, x & y, x})
 		}
 	}
-	render.Save(m, "result.png")
+	err := render.Save(m, "result.png")
+	assert("Could not save result image: ", err)
 	show("result.png")
 }
 
