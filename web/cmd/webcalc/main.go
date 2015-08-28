@@ -1,6 +1,8 @@
 package main
 
 import (
+	_ "expvar"
+
 	"fmt"
 	"log"
 	"net/http"
@@ -13,7 +15,7 @@ import (
 */
 func handlerDiv(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.Path[1:], "/")
-	fmt.Printf("Handle division with parts %#v\n", parts)
+	log.Printf("Handle division with parts %#v\n", parts)
 
 	x, err := strconv.ParseFloat(parts[0], 64)
 	if err != nil {
@@ -42,7 +44,7 @@ func handlerPanic(w http.ResponseWriter, r *http.Request) {
 */
 func handlerOp(w http.ResponseWriter, r *http.Request) {
 	op, url := popPrefix(r.URL.Path)
-	fmt.Printf("Handle operation with parts %q and %q\n", op, url)
+	log.Printf("Handle operation with parts %q and %q\n", op, url)
 
 	if op == "/div" {
 		http.StripPrefix(op, http.HandlerFunc(handlerDiv)).ServeHTTP(w, r)
@@ -85,7 +87,7 @@ func normalizer(next http.Handler) http.HandlerFunc {
 */
 func logger(next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("Got request url '%v' with path '%v'\n", r.URL, r.URL.Path)
+		log.Printf("Got request url '%v' with path '%v'\n", r.URL, r.URL.Path)
 		next.ServeHTTP(w, r)
 	}
 }
@@ -97,7 +99,7 @@ func recoverer(next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if r := recover(); r != nil {
-				fmt.Printf("Recovered in recoverer %#v", r)
+				log.Printf("Recovered in recoverer %#v", r)
 				http.Error(w, fmt.Sprintf("%#v", r), http.StatusInternalServerError)
 			}
 		}()
@@ -106,8 +108,8 @@ func recoverer(next http.Handler) http.HandlerFunc {
 }
 
 func main() {
-	port := 10002
-	fmt.Printf("Started server on %d\n", port)
+	port := 4000
+	log.Printf("Started server on %d\n", port)
 	var h http.Handler
 	h = http.HandlerFunc(handlerRoot)
 	h = normalizer(h)
@@ -125,7 +127,10 @@ func main() {
 	"/prefix/text/" ->"/prefix", "/text/"
 */
 func popPrefix(url string) (first string, rest string) {
-	i := strings.Index(url[1:], "/")
+	if url[0] == '/' {
+		url = url[1:]
+	}
+	i := strings.Index(url, "/")
 	if i < 0 {
 		return url, ""
 	}
