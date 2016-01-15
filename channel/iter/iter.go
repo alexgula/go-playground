@@ -1,4 +1,4 @@
-package channel
+package iter
 
 func Range(n int) (result chan int) {
 	result = make(chan int)
