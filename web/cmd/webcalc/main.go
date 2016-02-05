@@ -2,13 +2,18 @@ package main
 
 import (
 	_ "expvar"
+	"os"
 
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/alexgula/go-playground/web/path"
 )
+
+type Middleware func(http.Handler) http.Handler
 
 /*
 	"/x/y" -> render x / y
@@ -19,13 +24,13 @@ func handlerDiv(w http.ResponseWriter, r *http.Request) {
 
 	x, err := strconv.ParseFloat(parts[0], 64)
 	if err != nil {
-		fmt.Fprintln(w, "X is not float64")
+		fmt.Fprintf(w, "X is not float64: %v", err)
 		return
 	}
 
 	y, err := strconv.ParseFloat(parts[1], 64)
 	if err != nil {
-		fmt.Fprintln(w, "Y is not float64")
+		fmt.Fprintf(w, "Y is not float64: %v", err)
 		return
 	}
 
@@ -43,7 +48,7 @@ func handlerPanic(w http.ResponseWriter, r *http.Request) {
 	"/op/..." -> render operation
 */
 func handlerOp(w http.ResponseWriter, r *http.Request) {
-	op, url := popPrefix(r.URL.Path)
+	op, url := path.PopPrefix(r.URL.Path)
 	log.Printf("Handle operation with parts %q and %q\n", op, url)
 
 	if op == "/div" {
@@ -51,7 +56,7 @@ func handlerOp(w http.ResponseWriter, r *http.Request) {
 	} else if op == "/panic" {
 		http.StripPrefix(op, http.HandlerFunc(handlerPanic)).ServeHTTP(w, r)
 	} else {
-		fmt.Fprintln(w, "unrecognized command")
+		fmt.Fprintf(w, "Unrecognized command: %q", op)
 	}
 }
 
@@ -71,68 +76,52 @@ func handlerRoot(w http.ResponseWriter, r *http.Request) {
 	"text" -> redirect to "text/"
 	"text/" -> handlerRoot("text/")
 */
-func normalizer(next http.Handler) http.HandlerFunc {
+func normalizer(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasSuffix(r.URL.Path, "/") {
 			r.URL.Path = r.URL.Path + "/"
 			http.Redirect(w, r, r.URL.String(), http.StatusMovedPermanently)
 			return
 		}
-		next.ServeHTTP(w, r)
+		h.ServeHTTP(w, r)
 	}
 }
 
 /*
 	"text" -> log, handlerCanonicalize("text")
 */
-func logger(next http.Handler) http.HandlerFunc {
+func logger(l *log.Logger, h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Got request url '%v' with path '%v'\n", r.URL, r.URL.Path)
-		next.ServeHTTP(w, r)
+		l.Printf("Got request url '%v' with path '%v'\n", r.URL, r.URL.Path)
+		h.ServeHTTP(w, r)
 	}
 }
 
 /*
 	"text" -> log, handlerCanonicalize("text")
 */
-func recoverer(next http.Handler) http.HandlerFunc {
+func recoverer(l *log.Logger, h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("Recovered in recoverer %#v", r)
+				l.Printf("Recovered in recoverer %#v", r)
 				http.Error(w, fmt.Sprintf("%#v", r), http.StatusInternalServerError)
 			}
 		}()
-		next.ServeHTTP(w, r)
+		h.ServeHTTP(w, r)
 	}
 }
 
 func main() {
 	port := 4000
+	l := log.New(os.Stderr, "", log.LstdFlags)
 	log.Printf("Started server on %d\n", port)
 	var h http.Handler
 	h = http.HandlerFunc(handlerRoot)
 	h = normalizer(h)
-	h = logger(h)
-	h = recoverer(h)
+	h = logger(l, h)
+	h = recoverer(l, h)
 	http.Handle("/", h)
 	http.Handle("/favicon.ico", http.FileServer(FS(false)))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
-}
-
-/*
-	"xxx" -> "xxx", "" (although this is impossible since all URLs start with /)
-	"/" -> "/", ""
-	"/text/" -> "/text", "/"
-	"/prefix/text/" ->"/prefix", "/text/"
-*/
-func popPrefix(url string) (first string, rest string) {
-	if url[0] == '/' {
-		url = url[1:]
-	}
-	i := strings.Index(url, "/")
-	if i < 0 {
-		return url, ""
-	}
-	return url[:i+1], url[i+1:]
 }
