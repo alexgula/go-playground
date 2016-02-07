@@ -19,10 +19,17 @@ func weatherHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	data.City = city
+
 	data.Main.Celsius = data.Main.Kelvin - 273.15
 
 	w.Header().Set("Content-Type", "application/json, charset=utf-8")
-	json.NewEncoder(w).Encode(data)
+
+	err = json.NewEncoder(w).Encode(data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func main() {
