@@ -2,6 +2,8 @@ package weather
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -23,7 +25,10 @@ func Query(city string) (Data, error) {
 	}
 
 	defer func() {
-		_ = resp.Body.Close()
+		err := resp.Body.Close()
+		if err != nil {
+			log.Fatal(fmt.Sprintf("Could not close the response body: %#v", err))
+		}
 	}()
 
 	var d Data
