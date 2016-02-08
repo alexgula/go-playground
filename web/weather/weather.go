@@ -3,8 +3,10 @@ package weather
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
 )
 
 // Data contains weather results from OpenWeatherMap along with additional info
@@ -33,9 +35,21 @@ func Query(city string) (Data, error) {
 
 	var d Data
 
-	if err := json.NewDecoder(resp.Body).Decode(&d); err != nil {
+	log.Printf("%#v", resp)
+
+	if err := json.NewDecoder(io.TeeReader(resp.Body, &logWriter{})).Decode(&d); err != nil {
 		return Data{}, err
 	}
 
+	fmt.Fprintln(os.Stderr)
+
 	return d, nil
+}
+
+type logWriter struct {
+}
+
+func (l *logWriter) Write(p []byte) (n int, err error) {
+	log.Printf("%s", p)
+	return
 }
