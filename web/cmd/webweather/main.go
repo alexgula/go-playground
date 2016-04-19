@@ -13,7 +13,7 @@ import (
 func weatherHandler(w http.ResponseWriter, r *http.Request) {
 	city := strings.SplitN(r.URL.Path, "/", 2)[1]
 
-	data, err := weather.Query(city)
+	data, err := weather.NewApi("602e5a1c5cb62e61550a72adf8726063").Url().ByName(city).Query()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -14,14 +14,40 @@ type Data struct {
 	Name string `json:"name"`
 	City string `json:"city"`
 	Main struct {
-		Kelvin  float64 `json:"kelvin"`
-		Celsius float64 `json:"celsius"`
+		Kelvin  float64 `json:"temp"`
+		Celsius float64
 	} `json:"main"`
 }
 
+type api struct {
+	key string
+}
+
+func NewApi(key string) api {
+	return api{key: key}
+}
+
+type apiurl string
+
+func (a api) Url() apiurl {
+	return apiurl("http://api.openweathermap.org/data/2.5/weather?APPID=" + a.key)
+}
+
+type query struct {
+	url string
+}
+
+func (a apiurl) ByName(cityName string) query {
+	return query{url: string(a) + "&q=" + cityName}
+}
+
+func (a apiurl) ById(cityId string) query {
+	return query{url: string(a) + "&id=" + cityId}
+}
+
 // Query returns data from OpenWeatherMap for a given city
-func Query(city string) (Data, error) {
-	resp, err := http.Get("http://api.openweathermap.org/data/2.5/weather?q=" + city)
+func (q query) Query() (Data, error) {
+	resp, err := http.Get(q.url)
 	if err != nil {
 		return Data{}, err
 	}
