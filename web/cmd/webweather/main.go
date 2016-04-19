@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/alexgula/go-playground/web/weather"
+	"github.com/alexgula/go-playground/weather"
 )
 
 func weatherHandler(w http.ResponseWriter, r *http.Request) {
