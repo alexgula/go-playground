@@ -24,5 +24,5 @@ func main() {
 		fmt.Print(err)
 	}
 
-	fmt.Println(data)
+	fmt.Printf("%s %v\u00B0C\n", data.City, data.Main.Celsius)
 }
