@@ -45,8 +45,14 @@ func main() {
 
 	key := flag.String("key", "", "openweathermap.org API key")
 	city := flag.String("city", "", "openweathermap.org city name")
+	intervalFlag := flag.String("interval", "10m", "refresh interval")
 	flag.Parse()
 
-	wg := runWeather(10*time.Minute, *key, *city)
+	interval, err := time.ParseDuration(*intervalFlag)
+	if err != nil {
+		log.Fatalf("refresh interval is not in correct format: %s", *intervalFlag)
+	}
+
+	wg := runWeather(interval, *key, *city)
 	wg.Wait()
 }
