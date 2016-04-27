@@ -1,28 +1,52 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"sync"
+	"time"
 
 	"github.com/alexgula/go-playground/weather"
 )
 
-func getWeather(key string, city string) (weather.Data, error) {
-	data, err := weather.NewApi(key).Url().ByName(city).Query()
-	if err != nil {
-		return weather.Data{}, err
-	}
-
-	data.City = city
-	data.Main.Celsius = data.Main.Kelvin - 273.15
-
-	return data, nil
-}
-
-func main() {
-	data, err := getWeather("602e5a1c5cb62e61550a72adf8726063", "Gdansk")
+func getWeather(key string, city string) {
+	data, err := weather.NewApi(key, log.New(ioutil.Discard, "LOG: ", log.Ldate|log.Ltime)).Url().ByName(city).Query()
 	if err != nil {
 		fmt.Print(err)
 	}
 
-	fmt.Printf("%s %v\u00B0C\n", data.City, data.Main.Celsius)
+	//fmt.Println(data)
+	fmt.Printf("%s %.1f\u00B0C (%.1f\u00B0C - %.1f\u00B0C) %.0f%% %.0fhPa\n",
+		data.Name,
+		data.Main.Temp,
+		data.Main.TempMin,
+		data.Main.TempMax,
+		data.Main.Humidity,
+		data.Main.Pressure)
+}
+
+func runWeather(interval time.Duration, key string, city string) sync.WaitGroup {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		for {
+			getWeather(key, city)
+			time.Sleep(interval)
+		}
+		wg.Done()
+	}()
+	return wg
+}
+
+func main() {
+	fmt.Println("Starting...")
+
+	key := flag.String("key", "", "openweathermap.org API key")
+	city := flag.String("city", "", "openweathermap.org city name")
+	flag.Parse()
+
+	wg := runWeather(10*time.Minute, *key, *city)
+	wg.Wait()
 }

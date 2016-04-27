@@ -11,38 +11,66 @@ import (
 
 // Data contains weather results from OpenWeatherMap along with additional info
 type Data struct {
-	Name string `json:"name"`
-	City string `json:"city"`
 	Main struct {
-		Kelvin  float64 `json:"temp"`
-		Celsius float64
+		Humidity float64 `json:"humidity"` // %
+		Pressure float64 `json:"pressure"` // hPa
+		Temp     float64 `json:"temp"`     // Celsius
+		TempMin  float64 `json:"temp_min"` // Celsius
+		TempMax  float64 `json:"temp_max"` // Celsius
 	} `json:"main"`
+	Name string `json:"name"`
+	Sys  struct {
+		Country string `json:"country"`
+	} `json:"city"`
+	Weather []struct {
+		Main        string `json:"main"`
+		Description string `json:"description"`
+	} `json:"weather"`
+	Wind struct {
+		Speed  float64 `json:"speed"` // m/s
+		Degree float64 `json:"deg"`   // Degree
+	} `json:"wind"`
 }
 
 type api struct {
-	key string
+	key    string
+	logger *log.Logger
 }
 
-func NewApi(key string) api {
-	return api{key: key}
+func NewApi(key string, logger *log.Logger) api {
+	return api{key: key, logger: logger}
 }
 
-type apiurl string
-
-func (a api) Url() apiurl {
-	return apiurl("http://api.openweathermap.org/data/2.5/weather?APPID=" + a.key)
-}
-
-type query struct {
+type apiurl struct {
+	api
 	url string
 }
 
+func (a api) Url() apiurl {
+	return apiurl{api: a, url: "http://api.openweathermap.org/data/2.5/weather?units=metric&APPID=" + a.key}
+}
+
+type query struct {
+	apiurl
+}
+
 func (a apiurl) ByName(cityName string) query {
-	return query{url: string(a) + "&q=" + cityName}
+	a.url = a.url + "&q=" + cityName
+	return query{apiurl: a}
 }
 
 func (a apiurl) ById(cityId string) query {
-	return query{url: string(a) + "&id=" + cityId}
+	a.url = a.url + "&id=" + cityId
+	return query{apiurl: a}
+}
+
+type queryLogWriter struct {
+	query
+}
+
+func (l *queryLogWriter) Write(p []byte) (n int, err error) {
+	l.logger.Printf("%s", p)
+	return
 }
 
 // Query returns data from OpenWeatherMap for a given city
@@ -55,27 +83,19 @@ func (q query) Query() (Data, error) {
 	defer func() {
 		err := resp.Body.Close()
 		if err != nil {
-			log.Fatal(fmt.Sprintf("Could not close the response body: %#v", err))
+			q.logger.Fatal(fmt.Sprintf("Could not close the response body: %#v", err))
 		}
 	}()
 
 	var d Data
 
-	log.Printf("%#v", resp)
+	q.logger.Printf("%#v", resp)
 
-	if err := json.NewDecoder(io.TeeReader(resp.Body, &logWriter{})).Decode(&d); err != nil {
+	if err := json.NewDecoder(io.TeeReader(resp.Body, &queryLogWriter{query: q})).Decode(&d); err != nil {
 		return Data{}, err
 	}
 
 	fmt.Fprintln(os.Stderr)
 
 	return d, nil
-}
-
-type logWriter struct {
-}
-
-func (l *logWriter) Write(p []byte) (n int, err error) {
-	log.Printf("%s", p)
-	return
 }
