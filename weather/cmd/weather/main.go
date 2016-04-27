@@ -17,9 +17,10 @@ func getWeather(key string, city string) {
 		fmt.Print(err)
 	}
 
-	//fmt.Println(data)
-	fmt.Printf("%s %.1f\u00B0C (%.1f\u00B0C - %.1f\u00B0C) %.0f%% %.0fhPa\n",
+	fmt.Println(data)
+	fmt.Printf("%s, %s %.1f\u00B0C (%.1f\u00B0C - %.1f\u00B0C) %.0f%% %.0fhPa\n",
 		data.Name,
+		data.Sys.Country,
 		data.Main.Temp,
 		data.Main.TempMin,
 		data.Main.TempMax,

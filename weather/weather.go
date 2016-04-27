@@ -21,7 +21,7 @@ type Data struct {
 	Name string `json:"name"`
 	Sys  struct {
 		Country string `json:"country"`
-	} `json:"city"`
+	} `json:"sys"`
 	Weather []struct {
 		Main        string `json:"main"`
 		Description string `json:"description"`
