@@ -11,6 +11,11 @@ import (
 
 // Data contains weather results from OpenWeatherMap along with additional info
 type Data struct {
+	Coord struct {
+		Lat float64 `json:"lat"`
+		Lon float64 `json:"lon"`
+	} `json:"coord"`
+	Dt   int64 `json:"dt"`
 	Main struct {
 		Humidity float64 `json:"humidity"` // %
 		Pressure float64 `json:"pressure"` // hPa
