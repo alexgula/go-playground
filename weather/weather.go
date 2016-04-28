@@ -2,11 +2,9 @@ package weather
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"os"
 )
 
 // Data contains weather results from OpenWeatherMap along with additional info
@@ -88,7 +86,7 @@ func (q query) Query() (Data, error) {
 	defer func() {
 		err := resp.Body.Close()
 		if err != nil {
-			q.logger.Fatal(fmt.Sprintf("Could not close the response body: %#v", err))
+			q.logger.Fatalf("Could not close the response body: %#v\n", err)
 		}
 	}()
 
@@ -99,8 +97,6 @@ func (q query) Query() (Data, error) {
 	if err := json.NewDecoder(io.TeeReader(resp.Body, &queryLogWriter{query: q})).Decode(&d); err != nil {
 		return Data{}, err
 	}
-
-	fmt.Fprintln(os.Stderr)
 
 	return d, nil
 }

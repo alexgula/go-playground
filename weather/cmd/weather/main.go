@@ -12,15 +12,22 @@ import (
 	"github.com/alexgula/go-playground/weather"
 )
 
-func getWeather(logger *log.Logger, key string, city string) {
-	data, err := weather.NewApi(key, logger).Url().ByName(city).Query()
+type weatherClient struct {
+	logger *log.Logger
+	key    string
+	city   string
+}
+
+func (wc weatherClient) get() {
+	data, err := weather.NewApi(wc.key, wc.logger).Url().ByName(wc.city).Query()
 	if err != nil {
-		fmt.Print(err)
+		log.Fatal(err)
+		wc.logger.Fatal(err)
 	}
 
 	date := time.Unix(data.Dt, 0)
 
-	logger.Println(data)
+	wc.logger.Print(data)
 	fmt.Printf("%v: %s, %s %.1f\u00B0C (%.1f\u00B0C - %.1f\u00B0C) %.0f%% %.0fhPa\n",
 		date,
 		data.Name,
@@ -32,12 +39,12 @@ func getWeather(logger *log.Logger, key string, city string) {
 		data.Main.Pressure)
 }
 
-func runWeather(interval time.Duration, logger *log.Logger, key string, city string) sync.WaitGroup {
+func (wc weatherClient) poll(interval time.Duration) sync.WaitGroup {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		for {
-			getWeather(logger, key, city)
+			wc.get()
 			time.Sleep(interval)
 		}
 		wg.Done()
@@ -64,6 +71,7 @@ func main() {
 		logWriter = os.Stdout
 	}
 	logger := log.New(logWriter, "LOG: ", log.Ldate|log.Ltime)
-	wg := runWeather(interval, logger, *key, *city)
+	wc := weatherClient{logger: logger, key: *key, city: *city}
+	wg := wc.poll(interval)
 	wg.Wait()
 }
