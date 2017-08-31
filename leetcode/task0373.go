@@ -15,36 +15,35 @@ func kSmallestPairs(nums1 []int, nums2 []int, k int) [][]int {
 
 	result := make([][]int, k)
 
-	var i, i1, i2 int
+	var i, p1, p2 int
 
 	for ; i < len(result); i++ {
-		result[i] = []int{nums1[i1], nums2[i2]}
-		i1, i2 = nextPair(nums1, nums2, i1, i2)
+		result[i] = []int{nums1[p1], nums2[p2]}
+		p1, p2 = nextPair(nums1, nums2, p1, p2)
 	}
-	sort.Sort(bySum(result))
 
 	for ; i < len(nums1)*len(nums2); i++ {
-		insertPair(nums1, nums2, result, i1, i2)
-		i1, i2 = nextPair(nums1, nums2, i1, i2)
+		insertPair(nums1, nums2, result, p1, p2)
+		p1, p2 = nextPair(nums1, nums2, p1, p2)
 	}
 	sort.Sort(bySum(result))
 
 	return result
 }
 
-func nextPair(nums1, nums2 []int, i1, i2 int) (int, int) {
-	i1++
-	if i1 >= len(nums1) {
-		i1 = 0
-		i2++
+func nextPair(nums1, nums2 []int, p1, p2 int) (int, int) {
+	p1++
+	if p1 >= len(nums1) {
+		p1 = 0
+		p2++
 	}
-	return i1, i2
+	return p1, p2
 }
 
-func insertPair(nums1, nums2 []int, pairs [][]int, i1, i2 int) {
+func insertPair(nums1, nums2 []int, pairs [][]int, p1, p2 int) {
 	var iMax, sumMax = findMax(pairs)
-	if sumPair(nums1, nums2, i1, i2) < sumMax {
-		pairs[iMax] = []int{nums1[i1], nums2[i2]}
+	if sumPair(nums1, nums2, p1, p2) < sumMax {
+		pairs[iMax] = []int{nums1[p1], nums2[p2]}
 	}
 }
 
@@ -59,8 +58,8 @@ func findMax(pairs [][]int) (int, int64) {
 	return iMax, sumMax
 }
 
-func sumPair(nums1, nums2 []int, i1, i2 int) int64 {
-	return sum(nums1[i1], nums2[i2])
+func sumPair(nums1, nums2 []int, p1, p2 int) int64 {
+	return sum(nums1[p1], nums2[p2])
 }
 
 func sum(val1, val2 int) int64 {
