@@ -15,6 +15,10 @@ func kSmallestPairs(nums1 []int, nums2 []int, k int) [][]int {
 
 	result := make([][]int, k)
 
+	if k == 0 {
+		return result
+	}
+
 	var i, p1, p2 int
 
 	for ; i < len(result); i++ {
@@ -22,9 +26,18 @@ func kSmallestPairs(nums1 []int, nums2 []int, k int) [][]int {
 		p1, p2 = nextPair(nums1, nums2, p1, p2)
 	}
 
+	for j := len(result) / 2; j >= 0; j-- {
+		heapify(bySum(result), j)
+	}
+
 	for ; i < len(nums1)*len(nums2); i++ {
 		insertPair(nums1, nums2, result, p1, p2)
 		p1, p2 = nextPair(nums1, nums2, p1, p2)
+	}
+
+	for j := len(result) / 2; j >= 0; j-- {
+		var k = len(result) - j - 1
+		result[j], result[k] = result[k], result[j]
 	}
 	sort.Sort(bySum(result))
 
@@ -41,25 +54,26 @@ func nextPair(nums1, nums2 []int, p1, p2 int) (int, int) {
 }
 
 func insertPair(nums1, nums2 []int, pairs [][]int, p1, p2 int) {
-	var iMax, sumMax = findMax(pairs)
-	if sumPair(nums1, nums2, p1, p2) < sumMax {
-		pairs[iMax] = []int{nums1[p1], nums2[p2]}
+	var sumNew = sum(nums1[p1], nums2[p2])
+	var sumCur = sum(pairs[0][0], pairs[0][1])
+	if sumNew < sumCur {
+		pairs[0][0], pairs[0][1] = nums1[p1], nums2[p2]
+		heapify(bySum(pairs), 0)
 	}
 }
 
-func findMax(pairs [][]int) (int, int64) {
-	var iMax, sumMax = 0, sum(pairs[0][0], pairs[0][1])
-	for i := 1; i < len(pairs); i++ {
-		var sum = sum(pairs[i][0], pairs[i][1])
-		if sum > sumMax {
-			iMax, sumMax = i, sum
-		}
+func heapify(data sort.Interface, i int) {
+	var iLeft, iRight, iMax = 2*i + 1, 2*i + 2, i
+	if iLeft < data.Len() && data.Less(iMax, iLeft) {
+		iMax = iLeft
 	}
-	return iMax, sumMax
-}
-
-func sumPair(nums1, nums2 []int, p1, p2 int) int64 {
-	return sum(nums1[p1], nums2[p2])
+	if iRight < data.Len() && data.Less(iMax, iRight) {
+		iMax = iRight
+	}
+	if iMax != i {
+		data.Swap(iMax, i)
+		heapify(data, iMax)
+	}
 }
 
 func sum(val1, val2 int) int64 {
